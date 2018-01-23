@@ -47,7 +47,7 @@ setup(
 	author="Patrick Lumban Tobing",
 	author_email="patrickltobing@gmail.com",
 	url="https://github.com/patrickltobing/dtw_c",
-	description="dynamic time warping (DTW) with c implementation",
+	description="Dynamic Time Warping (DTW) implementation in C for Python",
 	keywords=['dynamic time warping','dtw'],
 	classifiers=[],
 )
