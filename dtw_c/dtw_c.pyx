@@ -2,7 +2,7 @@ import cython
 import numpy as np
 cimport numpy as np
 
-cdef extern from "dtw_sub.h":
+cdef extern from "dtw_sub_c.h":
 	void c_calc_distmat(const double* const * y, int row_y, const double* const * x, int row_x, int col, double** distmat)
 	void c_calc_sumdistmat_asym(const double* const * distmat, int startl, int tar_row, int org_row, double** sumdistmat)
 	void c_calc_pathmats_asym(const double* const * sumdistmat, int startl, int tar_row, int org_row, int** pathmat1, int** pathmat2)

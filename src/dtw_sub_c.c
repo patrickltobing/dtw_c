@@ -1,4 +1,4 @@
-#include "dtw_sub.h"
+#include "dtw_sub_c.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -253,4 +253,3 @@ void c_calc_dtwmat(const double* const * x, const int* const * twfunc, int tar_r
 
 	return;
 }
-
