@@ -3,7 +3,7 @@ dtw_c
 
 Dynamic Time Warping (DTW) implementation in C for Python
 
-Perform dtw of source features (org) into target features (trg) with mel-cepstral distortion (mcd) distance
+Perform DTW of source features (org) into target features (trg) with mel-cepstral distortion (mcd) distance
 
 Install
 ----
@@ -22,7 +22,7 @@ Variable desc.
 
 **dtw_org**: result of dtw-ed source features
 
-**twf_mat**: twf function to to compute dtw_org
+**twf_mat**: time warping data used to compute dtw_org
 
 **mcd**: average mcd over all frames
 
