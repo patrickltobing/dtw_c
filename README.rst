@@ -15,7 +15,7 @@ Usage
 
 from dtw_c import dtw_c as dtw
 
-dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(org, trg, sdim, ldim, shiftm, startm, endm)
+dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(trg, org, sdim, ldim, shiftm, startm, endm)
 
 Variable desc.
 ----
