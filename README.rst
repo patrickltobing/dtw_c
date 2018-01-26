@@ -29,9 +29,9 @@ ldim: last dimension to compute distance, e.g., for 35 dimensional features, and
 
 shiftm: frame shift value in miliseconds (ms), e.g, 5.0
 
-startm: how many ms would be regarded as starting point, e.g., 0.0 means starting point would be only the first frame, if it is 10.0, then possible starting points are the 1st and 2nd, because 10.0/5.0 = 2
+startm: how many ms would be regarded as starting point, e.g., 0.0 means starting point would only be the 1st frame, if it is 10.0, then possible starting points are the 1st and 2nd, because 10.0/5.0 = 2, and if it is 5.0, it would be also 1st frame only
 
-endm: how many ms would be regarded as ending point, e.g., if 0.0 means ending point would be the last frame
+endm: how many ms would be regarded as ending point, e.g., if 0.0 means ending point would only be the last frame
 
 
 To-do:
