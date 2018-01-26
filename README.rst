@@ -13,6 +13,8 @@ from dtw_c import dtw_c as dtw
 
 dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(org, trg, sdim, ldim, shiftm, startm, endm)
 
+Variable desc.:
+
 dtw_org: result of dtw-ed source features
 
 twf_mat: twf function to to compute dtw_org
@@ -27,14 +29,15 @@ ldim: last dimension to compute distance, e.g., for 35 dimensional features, and
 
 shiftm: frame shift value in miliseconds (ms), e.g, 5.0
 
-startm: how many ms would be regarded as starting point, e.g., 0.0 means starting point would only the first frame, if it is 10.0, then possible starting points are 0th, 1st and 2nd, because 10.0/5.0 = 2
+startm: how many ms would be regarded as starting point, e.g., 0.0 means starting point would be only the first frame, if it is 10.0, then possible starting points are the 1st and 2nd, because 10.0/5.0 = 2
 
 endm: how many ms would be regarded as ending point, e.g., if 0.0 means ending point would be the last frame
 
 
 To-do:
 
+- assert for input
 - set default values
-- function for performing dtw of both source and target sides
 - other distance measures, e.g., rmse
+- function for performing dtw of both source and target sides
 
