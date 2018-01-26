@@ -3,12 +3,13 @@ dtw_c
 
 Dynamic Time Warping (DTW) implementation in C for Python
 
+perform dtw of source features (org) into target features (trg) with mel-cepstral distortion (mcd) distance
+
+Install: pip install dtw_c
 
 Usage:
 
 from dtw_c import dtw_c as dtw
-
-perform dtw of source features (org) into target features (trg) with mel-cepstral distortion (mcd) distance
 
 dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(org, trg, sdim, ldim, shiftm, startm, endm)
 
