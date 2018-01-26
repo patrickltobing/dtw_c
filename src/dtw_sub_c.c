@@ -24,6 +24,23 @@ void c_calc_distmat(const double* const * y, int row_y, const double* const * x,
 	return;
 }
 
+double c_calc_mcd(const double* const * y, const double* const * x, int row, int col, double* mcdmat) {
+	int i, j;
+	double sumcdk, summcd;
+	double log_fact = 10.0 / log(10.0);
+
+	// calculate mcd in each frame-pair as distance
+	for (i = 0, summcd = 0.0; i < row; i++) {
+		for (j = 0, sumcdk = 0.0; j < col; j++) {
+			sumcdk += pow(y[i][j]-x[i][j],2);
+		} 
+		mcdmat[i] = log_fact * sqrt(2.0 * sumcdk);
+		summcd += mcdmat[i];
+	}
+
+	return summcd/(double)row;
+}
+
 void c_calc_sumdistmat_asym(const double* const * distmat, int startl, int tar_row, int org_row, double** sumdistmat) {
 	int ci, ri, cie;
 	double dist, diadist = -1.0, underdist = -1.0, leftdist = -1.0;

@@ -4,6 +4,7 @@ cimport numpy as np
 
 cdef extern from "dtw_sub_c.h":
 	void c_calc_distmat(const double* const * y, int row_y, const double* const * x, int row_x, int col, double** distmat)
+	double c_calc_mcd(const double* const * y, const double* const * x, int row, int col, double* mcdmat)
 	void c_calc_sumdistmat_asym(const double* const * distmat, int startl, int tar_row, int org_row, double** sumdistmat)
 	void c_calc_pathmats_asym(const double* const * sumdistmat, int startl, int tar_row, int org_row, int** pathmat1, int** pathmat2)
 	void c_calc_bestpath_asym(const double* const * sumdistmat, const int* const * pathmat, int endl, int tar_row, int org_row, int* pathres)
@@ -65,7 +66,7 @@ def calc_sumdistmat_asym(np.ndarray[double, ndim=2, mode="c"] distmat not None, 
 	return np.array(sumdistmat_data, dtype=np.float64)
 
 def calc_pathmats_asym(np.ndarray[double, ndim=2, mode="c"] sumdistmat not None, int startl):
-	print("pathmats_init")
+	#print("pathmats_init")
 	cdef int tar_row, org_row
 
 	tar_row, org_row = sumdistmat.shape[0], sumdistmat.shape[1]
@@ -82,7 +83,7 @@ def calc_pathmats_asym(np.ndarray[double, ndim=2, mode="c"] sumdistmat not None,
 	cdef int** cpp_pathmat1 = <int**> (<void*> &tmp2[0])
 	cdef int** cpp_pathmat2 = <int**> (<void*> &tmp3[0])
 
-	print("pathmats_init2")
+	#print("pathmats_init2")
 	cdef np.intp_t i, j
 
 	for i in range(tar_row):
@@ -90,9 +91,9 @@ def calc_pathmats_asym(np.ndarray[double, ndim=2, mode="c"] sumdistmat not None,
 		cpp_pathmat1[i] = &pathmat1_data[i, 0]
 		cpp_pathmat2[i] = &pathmat2_data[i, 0]
 
-	print("pathmats_start")
+	#print("pathmats_start")
 	c_calc_pathmats_asym(cpp_sumdistmat, startl, tar_row, org_row, cpp_pathmat1, cpp_pathmat2)
-	print("pathmats_end")
+	#print("pathmats_end")
 
 	cdef int[:, :, ::1] pathmats_data = np.zeros((2, tar_row, org_row), dtype=np.dtype('int32'))
 	pathmats_data[0] = pathmat1_data
@@ -188,7 +189,7 @@ def dtw_body_asym(np.ndarray[double, ndim=2, mode="c"] distmat not None, int shi
 	return twfunc 
 
 def calc_dtwmat(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[int, ndim=2, mode="c"] twf_mat not None, int tar_row):
-	cdef int org_row, col;
+	cdef int org_row, col
 
 	org_row, col = org_mat.shape[0], org_mat.shape[1]
 
@@ -217,3 +218,36 @@ def calc_dtwmat(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarra
 
 	return np.array(dtwmat_data, dtype=np.float64)
 
+def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] tar_mat not None, np.ndarray[double, ndim=2, mode="c"] org_mat not None, int sdim, int ldim, int shiftm, int startm, int endm):
+	cdef int tar_row, col
+	
+	tar_row, col = tar_mat.shape[0], tar_mat.shape[1]
+	ldim += 1
+
+	dist_mat = calc_distmat(np.array(tar_mat[:,sdim:ldim], dtype=np.float64), np.array(org_mat[:,sdim:ldim], dtype=np.float64))
+	twf_func = dtw_body_asym(dist_mat, shiftm, startm, endm)
+	dtw_mat = calc_dtwmat(org_mat, twf_func, tar_row)
+
+	cdef double[:, ::1] tarmat_data = tar_mat
+	cdef double[:, ::1] dtwmat_data = dtw_mat
+	cdef double[::1] mcdmat_data = np.zeros(tar_row, dtype=np.dtype('float64'))
+
+	cdef np.intp_t[:] tmp1 = np.zeros(tar_row, dtype=np.intp)
+	cdef np.intp_t[:] tmp2 = np.zeros(tar_row, dtype=np.intp)
+	cdef np.intp_t[:] tmp3 = np.zeros(tar_row, dtype=np.intp)
+
+	cdef double** cpp_tarmat = <double**> (<void*> &tmp1[0])
+	cdef double** cpp_dtwmat = <double**> (<void*> &tmp2[0])
+	cdef double* cpp_mcdmat = <double*> (<void*> &tmp3[0])
+
+	cdef np.intp_t i
+
+	for i in range(tar_row):
+		cpp_tarmat[i] = &tarmat_data[i, 0]
+		cpp_dtwmat[i] = &dtwmat_data[i, 0]
+	
+	cpp_mcdmat = &mcdmat_data[0]
+	
+	mcd = c_calc_mcd(cpp_tarmat, cpp_dtwmat, tar_row, col, cpp_mcdmat)
+
+	return dtw_mat, twf_func, mcd, np.array(mcdmat_data, dtype=np.float64)
