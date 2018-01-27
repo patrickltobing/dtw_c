@@ -20,13 +20,13 @@ dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(org, trg, sdim, ldim, shiftm
 Variable desc.
 ----
 
-**dtw_org**: result of dtw-ed source features
+**dtw_org**: result of dtw-ed source features, trg_frame x dim
 
-**twf_mat**: time warping data used to compute dtw_org
+**twf_mat**: time warping data used to compute dtw_org, trg_frame x 2
 
-**mcd**: average mcd over all frames
+**mcd**: average mcd over all frames, double
 
-**mcd_mat**: mcd per frame
+**mcd_mat**: mcd per frame, trg_frame x 1
 
 **org**: source features data, org_frame x dim
 
