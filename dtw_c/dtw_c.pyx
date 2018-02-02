@@ -214,10 +214,46 @@ def calc_dtwmat(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarra
 
 	return np.array(dtwmat_data, dtype=np.float64)
 
-def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=24, double shiftm=5.0, double startm=0.0, double endm=0.0):
+def calc_mcd(np.ndarray[double, ndim=2, mode="c"] tar_mat not None, np.ndarray[double, ndim=2, mode="c"] org_mat not None):
+	assert org_mat.ndim == 2, "org.ndim = %d != 2" % org_mat.ndim
+	assert tar_mat.ndim == 2, "trg.ndim = %d != 2" % tar_mat.ndim
+	assert org_mat.shape[0] == tar_mat.shape[0], "org.shape[0] = %d != %d = trg.shape[0]" % (org_mat.shape[0], tar_mat.shape[0])
+	assert org_mat.shape[1] == tar_mat.shape[1], "org.shape[1] = %d != %d = trg.shape[1]" % (org_mat.shape[1], tar_mat.shape[1])
+
+	cdef int row, col
+	
+	row, col = tar_mat.shape[0], tar_mat.shape[1]
+
+	cdef double[:, ::1] tarmat_data = tar_mat
+	cdef double[:, ::1] orgmat_data = org_mat
+	cdef double[::1] mcdmat_data = np.zeros(row, dtype=np.dtype('float64'))
+
+	cdef np.intp_t[:] tmp1 = np.zeros(row, dtype=np.intp)
+	cdef np.intp_t[:] tmp2 = np.zeros(row, dtype=np.intp)
+	cdef np.intp_t[:] tmp3 = np.zeros(row, dtype=np.intp)
+
+	cdef double** cpp_tarmat = <double**> (<void*> &tmp1[0])
+	cdef double** cpp_orgmat = <double**> (<void*> &tmp2[0])
+	cdef double* cpp_mcdmat = <double*> (<void*> &tmp3[0])
+
+	cdef np.intp_t i
+
+	for i in range(row):
+		cpp_tarmat[i] = &tarmat_data[i, 0]
+		cpp_orgmat[i] = &orgmat_data[i, 0]
+	
+	cpp_mcdmat = &mcdmat_data[0]
+	
+	mcd = c_calc_mcd(cpp_tarmat, cpp_orgmat, row, col, cpp_mcdmat)
+
+	return mcd, np.array(mcdmat_data, dtype=np.float64)
+
+def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=-1, double shiftm=5.0, double startm=0.0, double endm=0.0):
 	assert org_mat.ndim == 2, "org.ndim = %d != 2" % org_mat.ndim
 	assert tar_mat.ndim == 2, "trg.ndim = %d != 2" % tar_mat.ndim
 	assert org_mat.shape[1] == tar_mat.shape[1], "org.shape[1] = %d != %d = trg.shape[1]" % (org_mat.shape[1], tar_mat.shape[1])
+	if ldim < 0:
+		ldim = tar_mat.shape[1]-1
 	assert sdim >= 0 and ldim >= 0 and sdim <= ldim, "sdim = %d, ldim = %d, sdim and ldim should be >= 0, sdim should be <= ldim" % (sdim, ldim)
 	assert sdim < org_mat.shape[1], "sdim = %d >= %d = org.shape[1]" % (sdim, org_mat.shape[1])
 	assert ldim < org_mat.shape[1], "ldim = %d >= %d = org.shape[1]" % (ldim, org_mat.shape[1])
@@ -231,38 +267,14 @@ def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.nda
 	assert (startl+endl) <= org_mat.shape[0], "(startm/shiftm) = %d > %d = org.shape[0]" % (startl+endl, org_mat.shape[0])
 	assert (startl+endl) <= tar_mat.shape[0], "(startm/shiftm) = %d > %d = trg.shape[0]" % (startl+endl, tar_mat.shape[0])
 
-	cdef int tar_row, col
-	
+	cdef int tar_row = tar_mat.shape[0]
 	ldim += 1
-	tar_row, col = tar_mat.shape[0], tar_mat.shape[1]
 
 	tar_mat = np.array(tar_mat, dtype=np.float64)
 	org_mat = np.array(org_mat, dtype=np.float64)
 	dist_mat = calc_distmat(np.array(tar_mat[:,sdim:ldim], dtype=np.float64), np.array(org_mat[:,sdim:ldim], dtype=np.float64))
 	twf_func = dtw_body_asym(dist_mat, shiftm, startm, endm)
 	dtw_mat = calc_dtwmat(org_mat, twf_func, tar_row)
+	mcd, mcd_mat = calc_mcd(tar_mat, dtw_mat)
 
-
-	cdef double[:, ::1] tarmat_data = tar_mat
-	cdef double[:, ::1] dtwmat_data = dtw_mat
-	cdef double[::1] mcdmat_data = np.zeros(tar_row, dtype=np.dtype('float64'))
-
-	cdef np.intp_t[:] tmp1 = np.zeros(tar_row, dtype=np.intp)
-	cdef np.intp_t[:] tmp2 = np.zeros(tar_row, dtype=np.intp)
-	cdef np.intp_t[:] tmp3 = np.zeros(tar_row, dtype=np.intp)
-
-	cdef double** cpp_tarmat = <double**> (<void*> &tmp1[0])
-	cdef double** cpp_dtwmat = <double**> (<void*> &tmp2[0])
-	cdef double* cpp_mcdmat = <double*> (<void*> &tmp3[0])
-
-	cdef np.intp_t i
-
-	for i in range(tar_row):
-		cpp_tarmat[i] = &tarmat_data[i, 0]
-		cpp_dtwmat[i] = &dtwmat_data[i, 0]
-	
-	cpp_mcdmat = &mcdmat_data[0]
-	
-	mcd = c_calc_mcd(cpp_tarmat, cpp_dtwmat, tar_row, col, cpp_mcdmat)
-
-	return dtw_mat, twf_func, mcd, np.array(mcdmat_data, dtype=np.float64)
+	return dtw_mat, twf_func, mcd, mcd_mat
