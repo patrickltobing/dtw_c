@@ -174,11 +174,11 @@ def dtw_body_asym(np.ndarray[double, ndim=2, mode="c"] distmat not None, double 
 	pathres = calc_bestpath_asym(sumdistmat, pathmats[1], endl)
 	mindist = pathres[0]
 	if (mindist == 10E16):
-		print("error: dtw_body_asym: can't reach and end range")
+		print("error: dtw_body_asym: can't reach an end range, extend startm and endm")
 		print("error: dtw_body_asym: mindist=%lf, shiftm=%d, startm=%d, endm=%d" % (mindist, shiftm, startm, endm))
 		exit()
 	ci = pathres[1]
-	print("#sum_distance [%d][%d]: %lf" % (tar_row-1, ci, sumdistmat[tar_row-1][ci]))
+	#print("#sum_distance [%d][%d]: %lf" % (tar_row-1, ci, sumdistmat[tar_row-1][ci]))
 	# calc twf function
 	twfunc = calc_twfunc_asym(sumdistmat, pathmats[0], ci)
 

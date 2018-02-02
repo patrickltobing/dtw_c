@@ -240,7 +240,7 @@ void c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pat
 	twfunc[ri][0] = ci;
 	twfunc[ri][1] = 1;
 
-	fprintf(stderr, "normalized distance %lf\n", sumdistmat[tar_row_e][cis]/(double)(tar_row));
+	//fprintf(stderr, "normalized distance %lf\n", sumdistmat[tar_row_e][cis]/(double)(tar_row));
 
 	return;	
 }
