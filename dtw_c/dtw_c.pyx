@@ -187,6 +187,9 @@ def dtw_body_asym(np.ndarray[double, ndim=2, mode="c"] distmat not None, double 
 def calc_dtwmat(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[int, ndim=2, mode="c"] twf_mat not None):
 	cdef int org_row, tar_row, col
 
+	org_mat = np.array(org_mat, dtype=np.float64)
+	twf_mat = np.array(twf_mat, dtype=np.int32)
+
 	org_row, tar_row, col = org_mat.shape[0], twf_mat.shape[0], org_mat.shape[1]
 
 	cdef double[:, ::1] orgmat_data = org_mat
@@ -221,6 +224,9 @@ def calc_mcd(np.ndarray[double, ndim=2, mode="c"] tar_mat not None, np.ndarray[d
 	assert org_mat.shape[1] == tar_mat.shape[1], "org.shape[1] = %d != %d = trg.shape[1]" % (org_mat.shape[1], tar_mat.shape[1])
 
 	cdef int row, col
+
+	tar_mat = np.array(tar_mat, dtype=np.float64)
+	org_mat = np.array(org_mat, dtype=np.float64)
 	
 	row, col = tar_mat.shape[0], tar_mat.shape[1]
 
