@@ -184,10 +184,10 @@ def dtw_body_asym(np.ndarray[double, ndim=2, mode="c"] distmat not None, double 
 
 	return twfunc 
 
-def calc_dtwmat(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[int, ndim=2, mode="c"] twf_mat not None, int tar_row):
-	cdef int org_row, col
+def calc_dtwmat(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[int, ndim=2, mode="c"] twf_mat not None):
+	cdef int org_row, tar_row, col
 
-	org_row, col = org_mat.shape[0], org_mat.shape[1]
+	org_row, tar_row, col = org_mat.shape[0], twf_mat.shape[0], org_mat.shape[1]
 
 	cdef double[:, ::1] orgmat_data = org_mat
 	cdef int[:, ::1] twfmat_data = twf_mat
@@ -274,7 +274,7 @@ def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.nda
 	org_mat = np.array(org_mat, dtype=np.float64)
 	dist_mat = calc_distmat(np.array(tar_mat[:,sdim:ldim], dtype=np.float64), np.array(org_mat[:,sdim:ldim], dtype=np.float64))
 	twf_func = dtw_body_asym(dist_mat, shiftm, startm, endm)
-	dtw_mat = calc_dtwmat(org_mat, twf_func, tar_row)
+	dtw_mat = calc_dtwmat(org_mat, twf_func)
 	mcd, mcd_mat = calc_mcd(tar_mat, dtw_mat)
 
 	return dtw_mat, twf_func, mcd, mcd_mat
