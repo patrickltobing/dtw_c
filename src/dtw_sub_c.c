@@ -6,37 +6,58 @@
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 #define MAX(X,Y) ((X) < (Y) ? (X) : (Y))
 
-void c_calc_distmat(const double* const * y, int row_y, const double* const * x, int row_x, int col, double** distmat) {
+void c_calc_distmat(const double* const * y, int row_y, const double* const * x, int row_x, int col, double** distmat, int mcd) {
 	int i, j, k;
 	double sumcdk;
 	double log_fact = 10.0 / log(10.0);
 
 	// calculate mcd in each frame-pair as distance
-	for (i = 0; i < row_y; i++) {
-		for (j = 0; j < row_x; j++) {
-			for (k = 0, sumcdk = 0.0; k < col; k++) {
-				sumcdk += pow(y[i][k]-x[j][k],2);
-			} 
-			distmat[i][j] = log_fact * sqrt(2.0 * sumcdk);
-		}
-	}
+    if (mcd > 0) {
+	    for (i = 0; i < row_y; i++) {
+	    	for (j = 0; j < row_x; j++) {
+	    		for (k = 0, sumcdk = 0.0; k < col; k++) {
+	    			sumcdk += pow(y[i][k]-x[j][k],2);
+	    		}
+	    		distmat[i][j] = log_fact * sqrt(2.0 * sumcdk);
+	    	}
+	    }
+    } else {
+	    for (i = 0; i < row_y; i++) {
+	    	for (j = 0; j < row_x; j++) {
+	    		for (k = 0, sumcdk = 0.0; k < col; k++) {
+	    			sumcdk += pow(y[i][k]-x[j][k],2);
+	    		}
+	    		distmat[i][j] = sqrt(sumcdk/(double)col);
+	    	}
+	    }
+    }
 
 	return;
 }
 
-double c_calc_mcd(const double* const * y, const double* const * x, int row, int col, double* mcdmat) {
+double c_calc_mcd(const double* const * y, const double* const * x, int row, int col, double* mcdmat, int mcd) {
 	int i, j;
 	double sumcdk, summcd;
 	double log_fact = 10.0 / log(10.0);
 
 	// calculate mcd in each frame-pair as distance
-	for (i = 0, summcd = 0.0; i < row; i++) {
-		for (j = 0, sumcdk = 0.0; j < col; j++) {
-			sumcdk += pow(y[i][j]-x[i][j],2);
-		} 
-		mcdmat[i] = log_fact * sqrt(2.0 * sumcdk);
-		summcd += mcdmat[i];
-	}
+    if (mcd > 0) {
+	    for (i = 0, summcd = 0.0; i < row; i++) {
+	    	for (j = 0, sumcdk = 0.0; j < col; j++) {
+	    		sumcdk += pow(y[i][j]-x[i][j],2);
+	    	} 
+	    	mcdmat[i] = log_fact * sqrt(2.0 * sumcdk);
+	    	summcd += mcdmat[i];
+	    }
+    } else {
+	    for (i = 0, summcd = 0.0; i < row; i++) {
+	    	for (j = 0, sumcdk = 0.0; j < col; j++) {
+	    		sumcdk += pow(y[i][j]-x[i][j],2);
+	    	} 
+	    	mcdmat[i] = sqrt(sumcdk/(double)col);
+	    	summcd += mcdmat[i];
+	    }
+    }
 
 	return summcd/(double)row;
 }
