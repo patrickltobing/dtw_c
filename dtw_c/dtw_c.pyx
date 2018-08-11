@@ -8,7 +8,7 @@ cdef extern from "dtw_sub_c.h":
 	void c_calc_sumdistmat_asym(const double* const * distmat, int startl, int tar_row, int org_row, double** sumdistmat)
 	void c_calc_pathmats_asym(const double* const * sumdistmat, int startl, int tar_row, int org_row, int** pathmat1, int** pathmat2)
 	void c_calc_bestpath_asym(const double* const * sumdistmat, const int* const * pathmat, int endl, int tar_row, int org_row, int* pathres)
-	void c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pathmat, int ci, int tar_row, int org_row, int** twfunc)
+	int c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pathmat, int ci, int tar_row, int org_row, int** twfunc)
 	void c_calc_dtwmat(const double* const * x, const int* const * twfunc, int tar_row, int org_row, int col, double** dtwmat)
 
 def calc_distmat(np.ndarray[double, ndim=2, mode="c"] tar_mat not None, np.ndarray[double, ndim=2, mode="c"] org_mat not None, int mcd=1):
@@ -127,7 +127,7 @@ def calc_bestpath_asym(np.ndarray[double, ndim=2, mode="c"] sumdistmat not None,
 	return np.array(pathres_data, dtype=np.int32)
 
 def calc_twfunc_asym(np.ndarray[double, ndim=2, mode="c"] sumdistmat not None, np.ndarray[int, ndim=2, mode="c"] pathmat not None, int ci):
-	cdef int tar_row, org_row
+	cdef int tar_row, org_row, status
 
 	tar_row, org_row = sumdistmat.shape[0], sumdistmat.shape[1]
 
@@ -150,37 +150,46 @@ def calc_twfunc_asym(np.ndarray[double, ndim=2, mode="c"] sumdistmat not None, n
 		cpp_pathmat[i] = &pathmat_data[i, 0]
 		cpp_twfunc[i] = &twfunc_data[i, 0]
 
-	c_calc_twfunc_asym(cpp_sumdistmat, cpp_pathmat, ci, tar_row, org_row, cpp_twfunc)
+	status = c_calc_twfunc_asym(cpp_sumdistmat, cpp_pathmat, ci, tar_row, org_row, cpp_twfunc)
 
-	return np.array(twfunc_data, dtype=np.int32)
+	if status == 0:
+		return status, np.array(twfunc_data, dtype=np.int32)
+	else:
+		return status, []
 
 def dtw_body_asym(np.ndarray[double, ndim=2, mode="c"] distmat not None, double shiftm, double startm, double endm):
-	cdef int tar_row, org_row, ci
+	cdef int tar_row, org_row, ci, status = -1
 	cdef double mindist
 
-	tar_row, org_row = distmat.shape[0], distmat.shape[1]
-	startl = (int)(startm/shiftm)
-	endl = (int)(endm/shiftm)
-	if ((startl + endl) > tar_row or (startl + endl) > org_row):
-		print("error: dtw_body_asym: startl=%d, endl=%d, tar_row=%d, org_row=%d" % (startl, endl, tar_row, org_row))
-		exit()
-	startl = np.maximum(startl, 1)
+	while status != 0:
+		#print("%lf %lf" % (startm, endm))
+		tar_row, org_row = distmat.shape[0], distmat.shape[1]
+		startl = (int)(startm/shiftm)
+		endl = (int)(endm/shiftm)
+		if ((startl + endl) > tar_row or (startl + endl) > org_row):
+			print("error: dtw_body_asym: startl=%d, endl=%d, tar_row=%d, org_row=%d" % (startl, endl, tar_row, org_row))
+			exit()
+		startl = np.maximum(startl, 1)
 
-	# calc acc dist mat
-	sumdistmat = calc_sumdistmat_asym(distmat, startl)
-	# calc backtrack path mat
-	pathmats = calc_pathmats_asym(sumdistmat, startl)
-	# calc best path and dist
-	pathres = calc_bestpath_asym(sumdistmat, pathmats[1], endl)
-	mindist = pathres[0]
-	if (mindist == 10E16):
-		print("error: dtw_body_asym: can't reach an end range, extend startm and endm")
-		print("error: dtw_body_asym: mindist=%lf, shiftm=%d, startm=%d, endm=%d" % (mindist, shiftm, startm, endm))
-		exit()
-	ci = pathres[1]
-	#print("#sum_distance [%d][%d]: %lf" % (tar_row-1, ci, sumdistmat[tar_row-1][ci]))
-	# calc twf function
-	twfunc = calc_twfunc_asym(sumdistmat, pathmats[0], ci)
+		# calc acc dist mat
+		sumdistmat = calc_sumdistmat_asym(distmat, startl)
+		# calc backtrack path mat
+		pathmats = calc_pathmats_asym(sumdistmat, startl)
+		# calc best path and dist
+		pathres = calc_bestpath_asym(sumdistmat, pathmats[1], endl)
+		mindist = pathres[0]
+		if (mindist == 10E16):
+			print("error: dtw_body_asym: can't reach an end range, extend startm and endm")
+			print("error: dtw_body_asym: mindist=%lf, shiftm=%d, startm=%d, endm=%d" % (mindist, shiftm, startm, endm))
+			exit()
+		ci = pathres[1]
+		#print("#sum_distance [%d][%d]: %lf" % (tar_row-1, ci, sumdistmat[tar_row-1][ci]))
+		# calc twf function
+		status, twfunc = calc_twfunc_asym(sumdistmat, pathmats[0], ci)
+		#print("%d" % (status))
+		tar_row, org_row = distmat.shape[0], distmat.shape[1]
+		startm += shiftm
+		endm += shiftm
 
 	return twfunc 
 

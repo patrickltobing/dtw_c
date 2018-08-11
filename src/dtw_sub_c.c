@@ -237,10 +237,10 @@ void c_calc_bestpath_asym(const double* const * sumdistmat, const int* const * p
 	return;
 }
 
-void c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pathmat, int ci, int tar_row, int org_row, int** twfunc) {
-	int ri, cis, tar_row_e = tar_row-1;
+int c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pathmat, int ci, int tar_row, int org_row, int** twfunc) {
+	int ri, tar_row_e = tar_row-1;
 
-	for (ri = tar_row_e, cis = ci; ri > 0; ri--) {
+	for (ri = tar_row_e; ri > 0; ri--) {
 		twfunc[ri][0] = ci;
 		twfunc[ri][1] = 1;
 		if (pathmat[ri][ci] == 2) {
@@ -253,8 +253,9 @@ void c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pat
 			ci--;
 		} else {
 			if (pathmat[ri][ci] < 1) {
-				fprintf(stderr, "error: c_calc_twfunc_asym: pathmat[%d][%d] = %d < 1\n", ri, ci, pathmat[ri][ci]);
-				exit(1);
+				//fprintf(stderr, "error: c_calc_twfunc_asym: pathmat[%d][%d] = %d < 1\n", ri, ci, pathmat[ri][ci]);
+				return -1;
+				//exit(1);
 			}
 		}
 	}
@@ -263,7 +264,7 @@ void c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pat
 
 	//fprintf(stderr, "normalized distance %lf\n", sumdistmat[tar_row_e][cis]/(double)(tar_row));
 
-	return;	
+	return 0;
 }
 
 void c_calc_dtwmat(const double* const * x, const int* const * twfunc, int tar_row, int org_row, int col, double** dtwmat) {
