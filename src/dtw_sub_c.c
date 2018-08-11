@@ -190,14 +190,15 @@ void c_calc_pathmats_asym(const double* const * sumdistmat, int startl, int tar_
 					pathmat2[ri][ci] = pathmat2[ri-1][ci];
 				} else if (dist == leftdist) {
 					pathmat1[ri][ci] = 3;
-					pathmat2[ri][ci] = pathmat2[ri-1][ci-3];
+					//pathmat2[ri][ci] = pathmat2[ri-1][ci-3];
+					pathmat2[ri][ci] = pathmat2[ri-1][ci-2];
 				} else {
 					fprintf(stderr, "error: calc_pathmats_asym: dist=%lf, diadist=%lf, underdist=%lf, leftdist=%lf\n", dist, diadist, underdist, leftdist);
 					exit(1);
 				}
 			} else {
 				pathmat1[ri][ci] = -1;
-				pathmat2[ri][ci] = -1;
+				pathmat2[ri][ci] = 0;
 			}
 		}
 	}
@@ -206,31 +207,32 @@ void c_calc_pathmats_asym(const double* const * sumdistmat, int startl, int tar_
 }
 
 void c_calc_bestpath_asym(const double* const * sumdistmat, const int* const * pathmat, int endl, int tar_row, int org_row, int* pathres) {
-	int ri, ci, ris, cis, org_row_e;
+	int ri, ci, ris, cis, org_row_e, a;
 	double meandist;
 
 	ris = tar_row-1;
 	org_row_e = org_row-endl-1;
-	for (cis = org_row_e; cis >= 0; cis--) {
+	for (cis = org_row_e, a=0; cis >= 0; cis--) {
 		if (pathmat[ris][cis] < 0) {
 			ri = 0;
 			ci = -1 * pathmat[ris][cis];
-		} else {
-			ri = ci = 0;
-		}
+			meandist = sumdistmat[ris][cis] / (ris - ri + cis - ci + 2);
+			//fprintf(stderr, "%d %lf\n", ci, sumdistmat[ris][cis]);
 
-		meandist = sumdistmat[ris][cis] / (ris - ri + cis - ci + 2);
+			if (sumdistmat[ris][cis] < 0.0)
+				meandist = 10E16;
 
-		if (sumdistmat[ris][cis] < 0.0)
-			meandist = 10E16;
-
-		if (cis == org_row_e) {
-			pathres[0] = meandist;
-			pathres[1] = cis;
-		} else {
-			pathres[0] = MIN(pathres[0], meandist);
-			if (pathres[0] == meandist)
+			if (a != 0) {
+				pathres[0] = MIN(pathres[0], meandist);
+				if (pathres[0] == meandist)
+					pathres[1] = cis;
+			} else {
+				pathres[0] = meandist;
 				pathres[1] = cis;
+				a++;
+			}
+		//} else {
+		//	ri = ci = 0;
 		}
 	}
 

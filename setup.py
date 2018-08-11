@@ -30,7 +30,7 @@ setup(
 	name="dtw_c",
 	ext_modules=ext_modules,
 	cmdclass={'build_ext': build_ext},
-	version='0.2.0',
+	version='0.2.1',
 	packages=find_packages(),
 	setup_requires=[
 		'numpy',

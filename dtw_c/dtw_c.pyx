@@ -93,7 +93,7 @@ def calc_pathmats_asym(np.ndarray[double, ndim=2, mode="c"] sumdistmat not None,
 
 	cdef int[:, :, ::1] pathmats_data = np.zeros((2, tar_row, org_row), dtype=np.dtype('int32'))
 	pathmats_data[0] = pathmat1_data
-	pathmats_data[1] = pathmat1_data
+	pathmats_data[1] = pathmat2_data
 
 	return np.array(pathmats_data, dtype=np.int32)
 
@@ -175,6 +175,11 @@ def dtw_body_asym(np.ndarray[double, ndim=2, mode="c"] distmat not None, double 
 		sumdistmat = calc_sumdistmat_asym(distmat, startl)
 		# calc backtrack path mat
 		pathmats = calc_pathmats_asym(sumdistmat, startl)
+		#print(pathmats[0])
+		#print(pathmats[0].shape)
+		#print(pathmats[1])
+		#print(pathmats[1].shape)
+		#exit()
 		# calc best path and dist
 		pathres = calc_bestpath_asym(sumdistmat, pathmats[1], endl)
 		mindist = pathres[0]
@@ -182,13 +187,18 @@ def dtw_body_asym(np.ndarray[double, ndim=2, mode="c"] distmat not None, double 
 			print("error: dtw_body_asym: can't reach an end range, extend startm and endm")
 			print("error: dtw_body_asym: mindist=%lf, shiftm=%d, startm=%d, endm=%d" % (mindist, shiftm, startm, endm))
 			exit()
+		#print("ci: %lf" % (ci))
 		ci = pathres[1]
+		#print(sumdistmat[sumdistmat.shape[0]-1,:])
+		#print("mindist: %lf" % (mindist))
 		#print("#sum_distance [%d][%d]: %lf" % (tar_row-1, ci, sumdistmat[tar_row-1][ci]))
 		# calc twf function
 		status, twfunc = calc_twfunc_asym(sumdistmat, pathmats[0], ci)
+		#print(twfunc)
+		#exit()
 		#print("%d" % (status))
 		tar_row, org_row = distmat.shape[0], distmat.shape[1]
-		startm += shiftm
+		#startm += shiftm
 		endm += shiftm
 
 	return twfunc 
@@ -263,7 +273,8 @@ def calc_mcd(np.ndarray[double, ndim=2, mode="c"] tar_mat not None, np.ndarray[d
 
 	return mcd_res, np.array(mcdmat_data, dtype=np.float64)
 
-def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=-1, double shiftm=5.0, double startm=0.0, double endm=0.0, int mcd=1):
+#def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=-1, double shiftm=5.0, double startm=0.0, double endm=0.0, int mcd=1):
+def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=-1, double shiftm=5.0, double startm=100.0, double endm=0.0, int mcd=1):
 	assert org_mat.ndim == 2, "org.ndim = %d != 2" % org_mat.ndim
 	assert tar_mat.ndim == 2, "trg.ndim = %d != 2" % tar_mat.ndim
 	assert org_mat.shape[1] == tar_mat.shape[1], "org.shape[1] = %d != %d = trg.shape[1]" % (org_mat.shape[1], tar_mat.shape[1])
