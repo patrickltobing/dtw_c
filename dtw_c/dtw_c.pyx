@@ -274,7 +274,8 @@ def calc_mcd(np.ndarray[double, ndim=2, mode="c"] tar_mat not None, np.ndarray[d
 	return mcd_res, np.array(mcdmat_data, dtype=np.float64)
 
 #def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=-1, double shiftm=5.0, double startm=0.0, double endm=0.0, int mcd=1):
-def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=-1, double shiftm=5.0, double startm=100.0, double endm=0.0, int mcd=1):
+#def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=-1, double shiftm=5.0, double startm=100.0, double endm=0.0, int mcd=1):
+def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.ndarray[double, ndim=2, mode="c"] tar_mat not None, int sdim=0, int ldim=-1, double shiftm=5.0, double startm=50.0, double endm=0.0, int mcd=1):
 	assert org_mat.ndim == 2, "org.ndim = %d != 2" % org_mat.ndim
 	assert tar_mat.ndim == 2, "trg.ndim = %d != 2" % tar_mat.ndim
 	assert org_mat.shape[1] == tar_mat.shape[1], "org.shape[1] = %d != %d = trg.shape[1]" % (org_mat.shape[1], tar_mat.shape[1])

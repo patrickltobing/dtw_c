@@ -75,6 +75,7 @@ void c_calc_sumdistmat_asym(const double* const * distmat, int startl, int tar_r
 		}
 	}
 
+	//fprintf(stderr, "c_calc_sumdistmat_asym\n");
 	// iterate from 1st row of target
 	for (ri = 1; ri < tar_row; ri++) {
 		cie = MAX(startl + 2 * ri, org_row);
@@ -140,6 +141,7 @@ void c_calc_pathmats_asym(const double* const * sumdistmat, int startl, int tar_
 		}
 	}
 
+	//fprintf(stderr, "c_calc_pathmats_asym\n");
 	// iterate from 1st row of target
 	for (ri = 1; ri < tar_row; ri++) {
 		cie = MAX(startl + 2 * ri, org_row);
@@ -207,17 +209,23 @@ void c_calc_pathmats_asym(const double* const * sumdistmat, int startl, int tar_
 }
 
 void c_calc_bestpath_asym(const double* const * sumdistmat, const int* const * pathmat, int endl, int tar_row, int org_row, int* pathres) {
-	int ri, ci, ris, cis, org_row_e, a;
+	int ri, ci, ris, cis, org_row_e, org_row_e_e, a;
 	double meandist;
 
 	ris = tar_row-1;
 	org_row_e = org_row-endl-1;
-	for (cis = org_row_e, a=0; cis >= 0; cis--) {
-		if (pathmat[ris][cis] < 0) {
+	org_row_e_e = org_row_e-50;
+	if (org_row_e_e < 0)
+        org_row_e_e = 0;
+	//fprintf(stderr, "c_calc_bestpath_asym\n");
+	//for (cis = org_row_e, a=0; cis >= 0; cis--) {
+	for (cis = org_row_e, a=0; cis >= org_row_e_e; cis--) {
+		//fprintf(stderr, "%d %d %d\n", ris, cis, pathmat[ris][cis]);
+		//if (pathmat[ris][cis] < 0) {
 			ri = 0;
 			ci = -1 * pathmat[ris][cis];
 			meandist = sumdistmat[ris][cis] / (ris - ri + cis - ci + 2);
-			//fprintf(stderr, "%d %lf\n", ci, sumdistmat[ris][cis]);
+			//fprintf(stderr, "%d %d %d %lf %lf\n", ris, cis, ci, sumdistmat[ris][cis], meandist);
 
 			if (sumdistmat[ris][cis] < 0.0)
 				meandist = 10E16;
@@ -233,7 +241,7 @@ void c_calc_bestpath_asym(const double* const * sumdistmat, const int* const * p
 			}
 		//} else {
 		//	ri = ci = 0;
-		}
+		//}
 	}
 
 	return;
@@ -241,7 +249,9 @@ void c_calc_bestpath_asym(const double* const * sumdistmat, const int* const * p
 
 int c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pathmat, int ci, int tar_row, int org_row, int** twfunc) {
 	int ri, tar_row_e = tar_row-1;
+	int cis=ci;
 
+	//fprintf(stderr, "c_calc_twfunc_asym\n");
 	for (ri = tar_row_e; ri > 0; ri--) {
 		twfunc[ri][0] = ci;
 		twfunc[ri][1] = 1;
