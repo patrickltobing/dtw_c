@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 #define MAX(X,Y) ((X) < (Y) ? (X) : (Y))
@@ -62,221 +63,417 @@ double c_calc_mcd(const double* const * y, const double* const * x, int row, int
 	return summcd/(double)row;
 }
 
-void c_calc_sumdistmat_asym(const double* const * distmat, int startl, int tar_row, int org_row, double** sumdistmat) {
-	int ci, ri, cie;
+void c_calc_twfunc_asym(const double* const * distmat, int winl, int tar_row, int org_row, double** sumdistmat, int** pathmat1, int** pathmat2, int** twfunc) {
 	double dist, diadist = -1.0, underdist = -1.0, leftdist = -1.0;
+	double underdiadist = -1.0, dialeftdist = -1.0;
+	double factor, bound, meandist, minmeandist = 1E6;
+	int ri, ci, cis;
+	int i = 1, j = 0, k, winl_e = winl + 1;
+	int idx_under, idx_underdia, idx_dia, idx_dialeft, idx_left;
+	int last_j, last_left, last_right, left, right, last_j_diff, j_diff, count;
 
-	// init first row for sumdistmat and pathmats1 and patmaths2
-	for (ci = 0; ci < org_row; ci++) {
-		if (ci < startl) {
+	for (ci = 0; ci < org_row; ci++) { // init first target row
+		if (ci < winl_e) {
 			sumdistmat[0][ci] = distmat[0][ci];
-		} else {
-			sumdistmat[0][ci] = -1.0;	
-		}
-	}
-
-	//fprintf(stderr, "c_calc_sumdistmat_asym\n");
-	// iterate from 1st row of target
-	for (ri = 1; ri < tar_row; ri++) {
-		cie = MAX(startl + 2 * ri, org_row);
-		// iterate for every row of source
-		for (ci = 0; ci < org_row; ci++) {
-			if (ci < cie) {
-				// diagonal
-				if (ci-1 >= 0) {
-					if (sumdistmat[ri-1][ci-1] != -1.0)
-						diadist = sumdistmat[ri-1][ci-1] + distmat[ri][ci];
-					else diadist = -1.0;
-				} else diadist = -1.0;
-				// under
-				if (sumdistmat[ri-1][ci] != -1.0)
-					underdist = sumdistmat[ri-1][ci] + distmat[ri][ci];
-				else underdist = -1.0;
-				// left
-				if (ci-2 >= 0) {
-					if (sumdistmat[ri-1][ci-2] != -1.0)
-						leftdist = sumdistmat[ri-1][ci-2] + distmat[ri][ci];
-					else leftdist = -1.0;
-				} else leftdist = -1.0;
-				if (diadist != -1.0) {
-					dist = diadist;
-					if (underdist != -1.0)
-						if (underdist < dist)
-							dist = underdist;
-					if (leftdist != -1.0)
-						if (leftdist < dist)
-							dist = leftdist;
-				} else if (underdist != -1.0) {
-					dist = underdist;
-					if (leftdist != -1.0)
-						if (leftdist < dist)
-							dist = leftdist;
-				} else dist = leftdist;
-				if (dist == -1.0) {
-					fprintf(stderr, "error: calc_sumdistmat_asym: dist = -1.0 at [%d][%d]\n", ri, ci);
-					exit(1);
-				}
-				sumdistmat[ri][ci] = dist;
-			} else {
-				sumdistmat[ri][ci] = -1.0;
-			}
-		}
-	}
-
-	return;
-}
-
-void c_calc_pathmats_asym(const double* const * sumdistmat, int startl, int tar_row, int org_row, int** pathmat1, int** pathmat2) {
-	int ci, ri, cie;
-	double dist, diadist = -1.0, underdist = -1.0, leftdist = -1.0;
-
-	// init first row for sumdistmat and pathmats1 and patmaths2
-	for (ci = 0; ci < org_row; ci++) {
-		if (ci < startl) {
 			pathmat1[0][ci] = 0;
 			pathmat2[0][ci] = -ci;
+			//fprintf(stderr, "ci:%d;  dist=%lf;  sumdist=%lf\n", ci, distmat[0][ci], sumdistmat[0][ci]);
 		} else {
+			sumdistmat[0][ci] = -1.0;
 			pathmat1[0][ci] = -1;
 			pathmat2[0][ci] = -ci;
+			//fprintf(stderr, "~ ci:%d;  dist=%lf;  sumdist=%lf\n", ci, distmat[0][ci], sumdistmat[0][ci]);
 		}
 	}
-
-	//fprintf(stderr, "c_calc_pathmats_asym\n");
-	// iterate from 1st row of target
-	for (ri = 1; ri < tar_row; ri++) {
-		cie = MAX(startl + 2 * ri, org_row);
-		// iterate for every row of source
+	for (ri = 1; ri < tar_row; ri++)
 		for (ci = 0; ci < org_row; ci++) {
-			if (ci < cie) {
-				// diagonal
-				if (ci-1 >= 0) {
-					if (sumdistmat[ri-1][ci-1] != -1.0)
-						diadist = sumdistmat[ri-1][ci-1];
-					else diadist = -1.0;
-				} else diadist = -1.0;
-				// under
-				if (sumdistmat[ri-1][ci] != -1.0)
-					underdist = sumdistmat[ri-1][ci];
-				else underdist = -1.0;
-				// left
-				if (ci-2 >= 0) {
-					if (sumdistmat[ri-1][ci-2] != -1.0)
-						leftdist = sumdistmat[ri-1][ci-2];
-					else leftdist = -1.0;
-				} else leftdist = -1.0;
-				// select the best path (diagonal, under, or left) w/ minimum dist
-				if (diadist != -1.0) {
-					dist = diadist;
-					if (underdist != -1.0)
-						if (underdist < dist)
-							dist = underdist;
-					if (leftdist != -1.0)
+			sumdistmat[ri][ci] = -1.0;
+			pathmat1[ri][ci] = -1;
+			pathmat2[ri][ci] = -1;
+		}
+	//fprintf(stderr, "dist_under=%lf\n", sumdistmat[0][0]);
+	//fprintf(stderr, "~dist_under=%lf\n", sumdistmat[i-1][0]);
+
+	if (tar_row > org_row) { // target is longer
+		factor = (double)tar_row/org_row;
+		count = 1;
+		bound = factor * count;
+		left = j-winl;
+		if (left < 0) left = 0;
+		right = j+winl_e;
+		if (right > org_row) right = org_row;
+		for (; i < tar_row; i++) {
+			last_j = j;
+			last_left = last_j-winl;
+			if (last_left < 0) last_left = 0;
+			last_right = last_j+winl_e;
+			if (last_right > org_row) last_right = org_row;
+			if ((float)i >= bound) {
+				j = count;
+				left = j-winl;
+				if (left < 0) left = 0;
+				right = j+winl_e;
+				if (right > org_row) right = org_row;
+				count++;
+				bound = factor * count;
+			}
+			last_j_diff = j-last_j;
+			for (k = left; k < right; k++) {
+				j_diff = j-k;
+				idx_under = last_j+(last_j_diff-j_diff);
+				idx_underdia = idx_under-1;
+				idx_dia = idx_underdia-1;
+				idx_dialeft = idx_dia-1;
+				idx_left = idx_dialeft-1;
+				// take minimum accumulated distance
+				if (idx_under < last_right && idx_under >= last_left) { // record under dist
+					underdist = sumdistmat[i-1][idx_under] + distmat[i][k];
+				} else underdist = -1;
+				if (idx_underdia < last_right && idx_underdia >= last_left) { // record under_dia dist
+					underdiadist = sumdistmat[i-1][idx_underdia] + distmat[i][k];
+				} else underdiadist = -1;
+				if (idx_dia < last_right && idx_dia >= last_left) { // record dia dist
+					diadist = sumdistmat[i-1][idx_dia] + distmat[i][k];
+				} else diadist = -1;
+				if (idx_dialeft < last_right && idx_dialeft >= last_left) { // record dia_left dist
+					dialeftdist = sumdistmat[i-1][idx_dialeft] + distmat[i][k];
+				} else dialeftdist = -1;
+				if (idx_left < last_right && idx_left >= last_left) { // record left dist
+					leftdist = sumdistmat[i-1][idx_left] + distmat[i][k];
+				} else leftdist = -1;
+                if (underdist != -1) { // compare under dist
+					dist = underdist;
+					if (leftdist != - 1)
 						if (leftdist < dist)
 							dist = leftdist;
-				} else if (underdist != -1.0) {
-					dist = underdist;
-					if (leftdist != -1.0)
+					if (dialeftdist != - 1)
+						if (dialeftdist <= dist)
+							dist = dialeftdist;
+					if (underdiadist != - 1)
+						if (underdiadist <= dist)
+							dist = underdiadist;
+					if (diadist != - 1)
+						if (diadist <= dist)
+							dist = diadist;
+				} else if (underdiadist != -1) { // compare under_dia dist
+					dist = underdiadist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+					if (dialeftdist != - 1)
+						if (dialeftdist < dist)
+							dist = dialeftdist;
+					if (diadist != - 1)
+						if (diadist <= dist)
+							dist = diadist;
+				} else if (diadist != -1) { // compare dia dist
+					dist = diadist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+					if (dialeftdist != - 1)
+						if (dialeftdist < dist)
+							dist = dialeftdist;
+				} else if (dialeftdist != -1) { // compare dia_left dist
+					dist = dialeftdist;
+					if (leftdist != - 1)
 						if (leftdist < dist)
 							dist = leftdist;
 				} else dist = leftdist;
 				if (dist == -1.0) {
-					fprintf(stderr, "error: calc_pathmats_asym: dist = -1.0 at [%d][%d]\n", ri, ci);
+					fprintf(stderr, "a error: calc_sumdistmat_asym: dist = -1.0 at [%d][%d]\n", i, k);
 					exit(1);
 				}
+				sumdistmat[i][k] = dist;
 				// set backtrack point for the best path
 				if (dist == diadist) {
-					pathmat1[ri][ci] = 1;
-					pathmat2[ri][ci] = pathmat2[ri-1][ci-1];
+					pathmat1[i][k] = 1;
+					pathmat2[i][k] = pathmat2[i-1][k-2];
+				} else if (dist == underdiadist) {
+					pathmat1[i][k] = 2;
+					pathmat2[i][k] = pathmat2[i-1][k-1];
+				} else if (dist == dialeftdist) {
+					pathmat1[i][k] = 3;
+					pathmat2[i][k] = pathmat2[i-1][k-3];
 				} else if (dist == underdist) {
-					pathmat1[ri][ci] = 2;
-					pathmat2[ri][ci] = pathmat2[ri-1][ci];
+					pathmat1[i][k] = 4;
+					pathmat2[i][k] = pathmat2[i-1][k];
 				} else if (dist == leftdist) {
-					pathmat1[ri][ci] = 3;
-					//pathmat2[ri][ci] = pathmat2[ri-1][ci-3];
-					pathmat2[ri][ci] = pathmat2[ri-1][ci-2];
+					pathmat1[i][k] = 5;
+					pathmat2[i][k] = pathmat2[i-1][k-4];
 				} else {
-					fprintf(stderr, "error: calc_pathmats_asym: dist=%lf, diadist=%lf, underdist=%lf, leftdist=%lf\n", dist, diadist, underdist, leftdist);
+					fprintf(stderr, "a error: calc_pathmats_asym: dist=%lf, diadist=%lf, underdiadist=%lf, dialeftdist=%lf, underdist=%lf, leftdist=%lf\n", dist, diadist, underdiadist, dialeftdist, underdist, leftdist);
 					exit(1);
 				}
-			} else {
-				pathmat1[ri][ci] = -1;
-				pathmat2[ri][ci] = 0;
+			}
+		}
+	} else if (tar_row < org_row) { // source is longer
+		factor = (double)org_row/tar_row;
+		//fprintf(stderr, "b i-1=%d;  dist_under=%lf\n", i-1, sumdistmat[i-1][0]);
+		for (; i < tar_row; i++) {
+			last_j = j;
+			last_left = last_j-winl;
+			if (last_left < 0) last_left = 0;
+			last_right = last_j+winl_e;
+			if (last_right > org_row) last_right = org_row;
+			j = (int)floor(i*factor);
+			if (j-last_j > 4) j = last_j+4;
+			left = j-winl;
+			if (left < 0) left = 0;
+			right = j+winl_e;
+			if (right > org_row) right = org_row;
+			last_j_diff = j-last_j;
+			//fprintf(stderr, "b i=%d;  last_j=%d;  j=%d;  last_j_diff=%d;  last_left=%d; last_right=%d;  left=%d;  right=%d\n", i, last_j, j, last_j_diff, last_left, last_right, left, right);
+			for (k = left; k < right; k++) {
+				j_diff = j-k;
+				idx_under = last_j+(last_j_diff-j_diff);
+				idx_underdia = idx_under-1;
+				idx_dia = idx_underdia-1;
+				idx_dialeft = idx_dia-1;
+				idx_left = idx_dialeft-1;
+				//fprintf(stderr, "b k=%d;  dist=%lf;  j_diff=%d;  idx_under=%d;  idx_underdia=%d;  idx_dia=%d;  idx_dialeft=%d;  idx_left=%d\n", k, distmat[i][k], j_diff, idx_under, idx_underdia, idx_dia, idx_dialeft, idx_left);
+				// take minimum accumulated distance
+				if (idx_under < last_right && idx_under >= last_left) { // record under dist
+					underdist = sumdistmat[i-1][idx_under] + distmat[i][k];
+					//fprintf(stderr, "b i-1=%d;  idx_under=%d;  underdist=%lf;  dist_under=%lf\n", i-1, idx_under, underdist, sumdistmat[0][idx_under]);
+				} else underdist = -1;
+				if (idx_underdia < last_right && idx_underdia >= last_left) { // record under_dia dist
+					underdiadist = sumdistmat[i-1][idx_underdia] + distmat[i][k];
+					//fprintf(stderr, "b dist_underdia=%lf\n", sumdistmat[i-1][idx_underdia]);
+				} else underdiadist = -1;
+				if (idx_dia < last_right && idx_dia >= last_left) { // record dia dist
+					diadist = sumdistmat[i-1][idx_dia] + distmat[i][k];
+					//fprintf(stderr, "b dist_dia=%lf\n", sumdistmat[i-1][idx_dia]);
+				} else diadist = -1;
+				if (idx_dialeft < last_right && idx_dialeft >= last_left) { // record dia_left dist
+					dialeftdist = sumdistmat[i-1][idx_dialeft] + distmat[i][k];
+					//fprintf(stderr, "b dist_dialeft=%lf\n", sumdistmat[i-1][idx_dialeft]);
+				} else dialeftdist = -1;
+				if (idx_left < last_right && idx_left >= last_left) { // record left dist
+					leftdist = sumdistmat[i-1][idx_left] + distmat[i][k];
+					//fprintf(stderr, "b dist_left=%lf\n", sumdistmat[i-1][idx_left]);
+				} else leftdist = -1;
+                if (underdist != -1) { // compare under dist
+					dist = underdist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+					if (dialeftdist != - 1)
+						if (dialeftdist <= dist)
+							dist = dialeftdist;
+					if (underdiadist != - 1)
+						if (underdiadist <= dist)
+							dist = underdiadist;
+					if (diadist != - 1)
+						if (diadist <= dist)
+							dist = diadist;
+				} else if (underdiadist != -1) { // compare under_dia dist
+					dist = underdiadist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+					if (dialeftdist != - 1)
+						if (dialeftdist < dist)
+							dist = dialeftdist;
+					if (diadist != - 1)
+						if (diadist <= dist)
+							dist = diadist;
+				} else if (diadist != -1) { // compare dia dist
+					dist = diadist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+					if (dialeftdist != - 1)
+						if (dialeftdist < dist)
+							dist = dialeftdist;
+				} else if (dialeftdist != -1) { // compare dia_left dist
+					dist = dialeftdist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+				} else dist = leftdist;
+				//fprintf(stderr, "b dist=%lf, diadist=%lf, underdiadist=%lf, dialeftdist=%lf, underdist=%lf, leftdist=%lf\n", dist, diadist, underdiadist, dialeftdist, underdist, leftdist);
+				if (dist == -1.0) {
+					fprintf(stderr, "b error: calc_sumdistmat_asym: dist = -1.0 at [%d][%d]\n", i, k);
+					exit(1);
+				}
+				sumdistmat[i][k] = dist;
+				// set backtrack point for the best path
+				if (dist == diadist) {
+					pathmat1[i][k] = 1;
+					pathmat2[i][k] = pathmat2[i-1][k-2];
+				} else if (dist == underdiadist) {
+					pathmat1[i][k] = 2;
+					pathmat2[i][k] = pathmat2[i-1][k-1];
+				} else if (dist == dialeftdist) {
+					pathmat1[i][k] = 3;
+					pathmat2[i][k] = pathmat2[i-1][k-3];
+				} else if (dist == underdist) {
+					pathmat1[i][k] = 4;
+					pathmat2[i][k] = pathmat2[i-1][k];
+				} else if (dist == leftdist) {
+					pathmat1[i][k] = 5;
+					pathmat2[i][k] = pathmat2[i-1][k-4];
+				} else {
+					fprintf(stderr, "b error: calc_pathmats_asym: dist=%lf, diadist=%lf, underdiadist=%lf, dialeftdist=%lf, underdist=%lf, leftdist=%lf\n", dist, diadist, underdiadist, dialeftdist, underdist, leftdist);
+					exit(1);
+				}
+			}
+		}
+	} else { // same length
+		for (; i < tar_row; i++) {
+			last_j = j;
+			last_left = last_j-winl;
+			if (last_left < 0) last_left = 0;
+			last_right = last_j+winl_e;
+			if (last_right > org_row) last_right = org_row;
+			j = i;
+			left = j-winl;
+			if (left < 0) left = 0;
+			right = j+winl_e;
+			if (right > org_row) right = org_row;
+			last_j_diff = j-last_j;
+			for (k = left; k < right; k++) {
+				j_diff = j-k;
+				idx_under = last_j+(last_j_diff-j_diff);
+				idx_underdia = idx_under-1;
+				idx_dia = idx_underdia-1;
+				idx_dialeft = idx_dia-1;
+				idx_left = idx_dialeft-1;
+				// take minimum accumulated distance
+				if (idx_under < last_right && idx_under >= last_left) { // record under dist
+					underdist = sumdistmat[i-1][idx_under] + distmat[i][k];
+				} else underdist = -1;
+				if (idx_underdia < last_right && idx_underdia >= last_left) { // record under_dia dist
+					underdiadist = sumdistmat[i-1][idx_underdia] + distmat[i][k];
+				} else underdiadist = -1;
+				if (idx_dia < last_right && idx_dia >= last_left) { // record dia dist
+					diadist = sumdistmat[i-1][idx_dia] + distmat[i][k];
+				} else diadist = -1;
+				if (idx_dialeft < last_right && idx_dialeft >= last_left) { // record dia_left dist
+					dialeftdist = sumdistmat[i-1][idx_dialeft] + distmat[i][k];
+				} else dialeftdist = -1;
+				if (idx_left < last_right && idx_left >= last_left) { // record left dist
+					leftdist = sumdistmat[i-1][idx_left] + distmat[i][k];
+				} else leftdist = -1;
+                if (underdist != -1) { // compare under dist
+					dist = underdist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+					if (dialeftdist != - 1)
+						if (dialeftdist <= dist)
+							dist = dialeftdist;
+					if (underdiadist != - 1)
+						if (underdiadist <= dist)
+							dist = underdiadist;
+					if (diadist != - 1)
+						if (diadist <= dist)
+							dist = diadist;
+				} else if (underdiadist != -1) { // compare under_dia dist
+					dist = underdiadist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+					if (dialeftdist != - 1)
+						if (dialeftdist < dist)
+							dist = dialeftdist;
+					if (diadist != - 1)
+						if (diadist <= dist)
+							dist = diadist;
+				} else if (diadist != -1) { // compare dia dist
+					dist = diadist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+					if (dialeftdist != - 1)
+						if (dialeftdist < dist)
+							dist = dialeftdist;
+				} else if (dialeftdist != -1) { // compare dia_left dist
+					dist = dialeftdist;
+					if (leftdist != - 1)
+						if (leftdist < dist)
+							dist = leftdist;
+				} else dist = leftdist;
+				if (dist == -1.0) {
+					fprintf(stderr, "c error: calc_sumdistmat_asym: dist = -1.0 at [%d][%d]\n", i, k);
+					exit(1);
+				}
+				sumdistmat[i][k] = dist;
+				// set backtrack point for the best path
+				if (dist == diadist) {
+					pathmat1[i][k] = 1;
+					pathmat2[i][k] = pathmat2[i-1][k-2];
+				} else if (dist == underdiadist) {
+					pathmat1[i][k] = 2;
+					pathmat2[i][k] = pathmat2[i-1][k-1];
+				} else if (dist == dialeftdist) {
+					pathmat1[i][k] = 3;
+					pathmat2[i][k] = pathmat2[i-1][k-3];
+				} else if (dist == underdist) {
+					pathmat1[i][k] = 4;
+					pathmat2[i][k] = pathmat2[i-1][k];
+				} else if (dist == leftdist) {
+					pathmat1[i][k] = 5;
+					pathmat2[i][k] = pathmat2[i-1][k-4];
+				} else {
+					fprintf(stderr, "c error: calc_pathmats_asym: dist=%lf, diadist=%lf, underdiadist=%lf, dialeftdist=%lf, underdist=%lf, leftdist=%lf\n", dist, diadist, underdiadist, dialeftdist, underdist, leftdist);
+					exit(1);
+				}
 			}
 		}
 	}
 
-	return;
-}
-
-void c_calc_bestpath_asym(const double* const * sumdistmat, const int* const * pathmat, int endl, int tar_row, int org_row, int* pathres) {
-	int ri, ci, ris, cis, org_row_e, org_row_e_e, a;
-	double meandist;
-
-	ris = tar_row-1;
-	org_row_e = org_row-endl-1;
-	org_row_e_e = org_row_e-50;
-	if (org_row_e_e < 0)
-        org_row_e_e = 0;
-	//fprintf(stderr, "c_calc_bestpath_asym\n");
-	//for (cis = org_row_e, a=0; cis >= 0; cis--) {
-	for (cis = org_row_e, a=0; cis >= org_row_e_e; cis--) {
-		//fprintf(stderr, "%d %d %d\n", ris, cis, pathmat[ris][cis]);
-		//if (pathmat[ris][cis] < 0) {
-			ri = 0;
-			ci = -1 * pathmat[ris][cis];
-			meandist = sumdistmat[ris][cis] / (ris - ri + cis - ci + 2);
-			//fprintf(stderr, "%d %d %d %lf %lf\n", ris, cis, ci, sumdistmat[ris][cis], meandist);
-
-			if (sumdistmat[ris][cis] < 0.0)
-				meandist = 10E16;
-
-			if (a != 0) {
-				pathres[0] = MIN(pathres[0], meandist);
-				if (pathres[0] == meandist)
-					pathres[1] = cis;
-			} else {
-				pathres[0] = meandist;
-				pathres[1] = cis;
-				a++;
+	left = j-winl;
+	if (left < 0) left = 0;
+	right = j+winl_e-1;
+	if (right >= org_row) right = org_row-1;
+	// take the minimum accumulated distance and its optimum path
+	for (k = right, cis = k, ri = i-1; k >= left; k--) {
+		//fprintf(stderr, "b i=%d;  j=%d;  k=%d;  left=%d;  right=%d\n", i, j, k, left, right);
+		//fprintf(stderr, "b i=%d;  j=%d;  k=%d;  left=%d;  right=%d;  sumdist=%lf\n", i, j, k, left, right, sumdistmat[i][k]);
+		//fprintf(stderr, "b i=%d;  j=%d;  k=%d;  left=%d;  right=%d;  sumdist=%lf;  pathmat2=%d\n", i, j, k, left, right, sumdistmat[i][k], pathmat2[i][k]);
+		if (pathmat2[ri][k] < 0)
+			ci = -1 * pathmat2[ri][k];
+		else ci = 0;
+		meandist = sumdistmat[ri][k] / (ri + k - ci + 2);
+		if (k < right) {
+			if (meandist < minmeandist) {
+				minmeandist = meandist;
+				cis = k;
 			}
-		//} else {
-		//	ri = ci = 0;
-		//}
+		} else minmeandist = meandist;
 	}
 
-	return;
-}
-
-int c_calc_twfunc_asym(const double* const * sumdistmat, const int* const * pathmat, int ci, int tar_row, int org_row, int** twfunc) {
-	int ri, tar_row_e = tar_row-1;
-	int cis=ci;
-
-	//fprintf(stderr, "c_calc_twfunc_asym\n");
-	for (ri = tar_row_e; ri > 0; ri--) {
+	// compute twf function
+	for (ri = tar_row-1, ci = cis; ri > 0; ri--) {
 		twfunc[ri][0] = ci;
 		twfunc[ri][1] = 1;
-		if (pathmat[ri][ci] == 2) {
-			// under
-		} else if (pathmat[ri][ci] == 3) {
-			// left
+		//fprintf(stderr, "b ri=%d;  ci=%d\n", ri, ci);
+		if (pathmat1[ri][ci] == 1) {
+			// dia
 			ci -= 2;
-		} else if (pathmat[ri][ci] == 1) {
-			// diagonal
+		} else if (pathmat1[ri][ci] == 2) {
+			// under_dia
 			ci--;
+		} else if (pathmat1[ri][ci] == 3) {
+			// dia_left
+			ci -= 3;
+		} else if (pathmat1[ri][ci] == 5) {
+			// left
+			ci -= 4;
 		} else {
-			if (pathmat[ri][ci] < 1) {
-				//fprintf(stderr, "error: c_calc_twfunc_asym: pathmat[%d][%d] = %d < 1\n", ri, ci, pathmat[ri][ci]);
-				return -1;
-				//exit(1);
+			if (pathmat1[ri][ci] < 1) {
+				fprintf(stderr, "error: c_calc_twfunc_asym: pathmat[%d][%d] = %d < 1, %d, %lf\n", ri, ci, pathmat1[ri][ci], pathmat2[ri][ci], sumdistmat[ri][ci]);
+				exit(1);
 			}
 		}
+		//fprintf(stderr, "b ri=%d; ===> ci=%d\n", ri, ci);
 	}
 	twfunc[ri][0] = ci;
 	twfunc[ri][1] = 1;
 
-	//fprintf(stderr, "normalized distance %lf\n", sumdistmat[tar_row_e][cis]/(double)(tar_row));
-
-	return 0;
+	return;
 }
 
 void c_calc_dtwmat(const double* const * x, const int* const * twfunc, int tar_row, int org_row, int col, double** dtwmat) {
