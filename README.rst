@@ -15,7 +15,7 @@ Usage of dtw_org_to_trg
 
 from dtw_c import dtw_c as dtw
 
-dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(org, trg, sdim, ldim, shiftm, startm, endm)
+dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(org, trg, sdim, ldim, shiftm, winlenm)
 
 Variable desc.
 ----
@@ -34,13 +34,11 @@ Variable desc.
 
 **sdim**: starting dimension to compute distance, e.g., from first dimension would be 0: default=0
 
-**ldim**: last dimension to compute distance, e.g., for 35 dimensional features, and want to compute until the last dimension, then ldim is 34: default=until last dimension
+**ldim**: ending dimension to compute distance, e.g., until the last of 35 dimensional features would be 34 or -1: default=-1
 
-**shiftm**: frame shift value in miliseconds (ms), e.g, 5.0: default = 5.0
+**shiftm**: frame shift value in miliseconds (ms): default=5.0
 
-**startm**: how many ms would be regarded as starting point, e.g., 0.0 means starting point would only be the 1st frame, if it is 10.0, then possible starting points are the 1st and 2nd, because 10.0/5.0 = 2, and if it is 5.0, it would be also 1st frame only: default = 0.0
-
-**endm**: how many ms would be regarded as ending point, e.g., if 0.0 means ending point would only be the last frame: default = 0.0
+**winlenm**: windowing constraint length in miliseconds (ms): default=100.0, i.e., 20 frames for 5.0 shiftm
 
 Usage of calc_mcd
 ----
