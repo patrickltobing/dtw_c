@@ -8,14 +8,16 @@ Perform DTW of source features (org) into target features (trg) with mel-cepstra
 Install
 ----
 
+pip install numpy
 pip install dtw_c
 
 Usage of dtw_org_to_trg
 ----
 
 from dtw_c import dtw_c as dtw
+import numpy as np
 
-dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(org, trg, sdim, ldim, shiftm, winlenm)
+dtw_org, twf_mat, mcd, mcd_mat = dtw.dtw_org_to_trg(np.array(org, dtype=np.float64), np.array(trg, dtype=np.float64), sdim, ldim, shiftm, winlenm)
 
 Variable desc.
 ----
@@ -44,8 +46,9 @@ Usage of calc_mcd
 ----
 
 from dtw_c import dtw_c as dtw
+import numpy as np
 
-mcd, mcd_mat = dtw.calc_mcd(trg_mat, src_mat)
+mcd, mcd_mat = dtw.calc_mcd(np.array(trg_mat, dtype=np.float64), np.array(src_mat, dtype=np.float64))
 
 Variable desc.
 ----
