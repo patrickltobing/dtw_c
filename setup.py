@@ -1,3 +1,8 @@
+# By: Patrick Lumban Tobing (Nagoya University, August 2018 - October 2020)
+
+## Based on WORLD codec implementation by Jeremy Hsu
+## https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder
+
 from __future__ import with_statement, print_function, absolute_import
 
 from setuptools import setup, find_packages, Extension
@@ -30,15 +35,14 @@ setup(
 	name="dtw_c",
 	ext_modules=ext_modules,
 	cmdclass={'build_ext': build_ext},
-	version='0.4.0',
+	version='1.0.0',
 	packages=find_packages(),
 	setup_requires=[
 		'numpy',
-		'cython',
 	],
 	install_requires=[
 		'numpy',
-		'cython',
+		'cython>=0.24.0',
 	],
 	extras_require={
 		'test': ['nose'],

@@ -1,3 +1,8 @@
+// By: Patrick Lumban Tobing (Nagoya University, August 2018 - October 2020)
+
+/* Based on a GMM-based VC implementation by Tomoki Toda (Nara Institute of Science and Technology)
+   "Voice conversion based on maximum-likelihood estimation of spectral parameter trajectory, 2007" */
+
 #include "dtw_sub_c.h"
 #include <math.h>
 #include <stdio.h>
@@ -5,15 +10,14 @@
 #include <stdbool.h>
 
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
-#define MAX(X,Y) ((X) < (Y) ? (X) : (Y))
+#define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
 void c_calc_distmat(const double* const * y, int row_y, const double* const * x, int row_x, int col, double** distmat, int mcd) {
 	int i, j, k;
-	double sumcdk;
+	double sumcdk, sumprod, sumx, sumy;
 	double log_fact = 10.0 / log(10.0);
 
-	// calculate mcd in each frame-pair as distance
-    if (mcd > 0) {
+    if (mcd > 0) { // use mcd distance
 	    for (i = 0; i < row_y; i++) {
 	    	for (j = 0; j < row_x; j++) {
 	    		for (k = 0, sumcdk = 0.0; k < col; k++) {
@@ -22,13 +26,24 @@ void c_calc_distmat(const double* const * y, int row_y, const double* const * x,
 	    		distmat[i][j] = log_fact * sqrt(2.0 * sumcdk);
 	    	}
 	    }
-    } else {
+    } else if (mcd < 0) { // use log-spectral distance of magnitude
 	    for (i = 0; i < row_y; i++) {
 	    	for (j = 0; j < row_x; j++) {
 	    		for (k = 0, sumcdk = 0.0; k < col; k++) {
-	    			sumcdk += pow(y[i][k]-x[j][k],2);
+	    			sumcdk += pow(20*(log10(y[i][k])-log10(x[j][k])),2);
 	    		}
-	    		distmat[i][j] = sqrt(sumcdk/(double)col);
+	    		distmat[i][j] = sqrt(sumcdk/k);
+	    	}
+	    }
+    } else { // use reversed cosine similarity distance (because the algorithm takes minimum distance)
+	    for (i = 0; i < row_y; i++) {
+	    	for (j = 0; j < row_x; j++) {
+	    		for (k = 0, sumprod = 0.0, sumx = 0.0, sumy = 0.0; k < col; k++) {
+	    			sumprod += x[j][k]*y[i][k];
+	    			sumx += pow(x[j][k],2);
+	    			sumy += pow(y[i][k],2);
+	    		}
+	    		distmat[i][j] = (sumprod/(sqrt(sumx)*sqrt(sumy)))*(-1);
 	    	}
 	    }
     }
@@ -38,11 +53,10 @@ void c_calc_distmat(const double* const * y, int row_y, const double* const * x,
 
 double c_calc_mcd(const double* const * y, const double* const * x, int row, int col, double* mcdmat, int mcd) {
 	int i, j;
-	double sumcdk, summcd;
+	double sumcdk, summcd, sumprod, sumx, sumy;
 	double log_fact = 10.0 / log(10.0);
 
-	// calculate mcd in each frame-pair as distance
-    if (mcd > 0) {
+    if (mcd > 0) { // calculate frame-pair mcd
 	    for (i = 0, summcd = 0.0; i < row; i++) {
 	    	for (j = 0, sumcdk = 0.0; j < col; j++) {
 	    		sumcdk += pow(y[i][j]-x[i][j],2);
@@ -50,12 +64,22 @@ double c_calc_mcd(const double* const * y, const double* const * x, int row, int
 	    	mcdmat[i] = log_fact * sqrt(2.0 * sumcdk);
 	    	summcd += mcdmat[i];
 	    }
-    } else {
+    } else if (mcd < 0) { // calculate frame-pair lsd
 	    for (i = 0, summcd = 0.0; i < row; i++) {
 	    	for (j = 0, sumcdk = 0.0; j < col; j++) {
-	    		sumcdk += pow(y[i][j]-x[i][j],2);
+	    	    sumcdk += pow(20*(log10(y[i][j])-log10(x[i][j])),2);
 	    	} 
-	    	mcdmat[i] = sqrt(sumcdk/(double)col);
+	    	mcdmat[i] = sqrt(sumcdk/j);
+	    	summcd += mcdmat[i];
+	    }
+    } else { // calculate frame-pair cosine similarity
+	    for (i = 0, summcd = 0.0; i < row; i++) {
+	    	for (j = 0, sumprod = 0.0, sumx = 0.0, sumy = 0.0; j < col; j++) {
+	    		sumprod += x[i][j]*y[i][j];
+	    		sumx += pow(x[i][j],2);
+	    		sumy += pow(y[i][j],2);
+	    	} 
+	    	mcdmat[i] = sumprod/(sqrt(sumx)*sqrt(sumy));
 	    	summcd += mcdmat[i];
 	    }
     }
