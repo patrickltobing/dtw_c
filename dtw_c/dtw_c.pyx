@@ -125,8 +125,8 @@ def calc_mcd(np.ndarray[double, ndim=2, mode="c"] tar_mat not None, np.ndarray[d
     cdef int row, col
     
     if mcd < 0:
-        tar_mat = np.array(np.clip(tar_mat, a_min=1e-16, a_max=None), dtype=np.float64)
-        org_mat = np.array(np.clip(org_mat, a_min=1e-16, a_max=None), dtype=np.float64)
+        tar_mat = np.array(np.log10(np.clip(tar_mat, a_min=1e-16, a_max=None)), dtype=np.float64)
+        org_mat = np.array(np.log10(np.clip(org_mat, a_min=1e-16, a_max=None)), dtype=np.float64)
     else:
         tar_mat = np.array(tar_mat, dtype=np.float64)
         org_mat = np.array(org_mat, dtype=np.float64)
@@ -177,8 +177,8 @@ def dtw_org_to_trg(np.ndarray[double, ndim=2, mode="c"] org_mat not None, np.nda
     ldim += 1
     
     if mcd < 0:
-        tar_mat = np.array(np.clip(tar_mat, a_min=1e-16, a_max=None), dtype=np.float64)
-        org_mat = np.array(np.clip(org_mat, a_min=1e-16, a_max=None), dtype=np.float64)
+        tar_mat = np.array(np.log10(np.clip(tar_mat, a_min=1e-16, a_max=None)), dtype=np.float64)
+        org_mat = np.array(np.log10(np.clip(org_mat, a_min=1e-16, a_max=None)), dtype=np.float64)
     else:
         tar_mat = np.array(tar_mat, dtype=np.float64)
         org_mat = np.array(org_mat, dtype=np.float64)

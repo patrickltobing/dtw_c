@@ -30,7 +30,7 @@ void c_calc_distmat(const double* const * y, int row_y, const double* const * x,
 	    for (i = 0; i < row_y; i++) {
 	    	for (j = 0; j < row_x; j++) {
 	    		for (k = 0, sumcdk = 0.0; k < col; k++) {
-	    			sumcdk += pow(20*(log10(y[i][k])-log10(x[j][k])),2);
+	    			sumcdk += pow(20*(y[i][k]-x[j][k]),2);
 	    		}
 	    		distmat[i][j] = sqrt(sumcdk/k);
 	    	}
@@ -67,7 +67,7 @@ double c_calc_mcd(const double* const * y, const double* const * x, int row, int
     } else if (mcd < 0) { // calculate frame-pair lsd
 	    for (i = 0, summcd = 0.0; i < row; i++) {
 	    	for (j = 0, sumcdk = 0.0; j < col; j++) {
-	    	    sumcdk += pow(20*(log10(y[i][j])-log10(x[i][j])),2);
+	    	    sumcdk += pow(20*(y[i][j]-x[i][j]),2);
 	    	} 
 	    	mcdmat[i] = sqrt(sumcdk/j);
 	    	summcd += mcdmat[i];
